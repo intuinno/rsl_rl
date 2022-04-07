@@ -54,14 +54,13 @@ class SkinnerOnPolicyRunner:
         self.policy_cfg = train_cfg["policy"]
         self.device = device
         self.env = env
-        if self.policy_cfg.num_privileged_obs is not None:
-            num_critic_obs = self.policy_cfg.num_privileged_obs 
+        if self.policy_cfg["num_privileged_obs"] is not None:
+            num_critic_obs = self.policy_cfg["num_privileged_obs"] 
         else:
-            num_critic_obs = self.policy_cfg.num_obs
+            num_critic_obs = self.policy_cfg["num_obs"]
         actor_critic_class = eval(self.cfg["policy_class_name"]) # ActorCritic
-        actor_critic: ActorCritic = actor_critic_class( self.policy_cfg.num_obs,
+        actor_critic: ActorCritic = actor_critic_class( self.policy_cfg["num_obs"],
                                                         num_critic_obs,
-                                                        self.policy_cfg.num_actions,
                                                         **self.policy_cfg).to(self.device)
         alg_class = eval(self.cfg["algorithm_class_name"]) # PPO
         self.alg: PPO = alg_class(actor_critic, device=self.device, **self.alg_cfg)
@@ -69,7 +68,7 @@ class SkinnerOnPolicyRunner:
         self.save_interval = self.cfg["save_interval"]
 
         # init storage and model
-        self.alg.init_storage(self.env.num_envs, self.num_steps_per_env, [self.policy_cfg.num_obs], [self.policy_cfg.num_privileged_obs], [self.policy_cfg.num_actions])
+        self.alg.init_storage(self.env.num_envs, self.num_steps_per_env, [self.policy_cfg["num_obs"]], [self.policy_cfg["num_privileged_obs"]], [self.policy_cfg["num_actions"]])
 
         # Log
         self.log_dir = log_dir
@@ -79,15 +78,15 @@ class SkinnerOnPolicyRunner:
         self.current_learning_iteration = 0
 
         # Load pretrained policy
-        policy_path = self.runner.pretrained_policy_path
-        policy_loaded_dict = torch.load(path)
-        self.policy = ActorCritic( self.runner.pretrained_num_obs,
-                              self.runner.pretrained_num_critic_obs,
-                              self.runner.pretrained_num_actions,
-                              self.runner.pretrained_actor_hidden_dims,
-                              self.runner.pretrained_critic_hidden_dims,
-                              self.runner.pretrained_activation, 
-                              self.runner.pretrained_init_noise_std
+        policy_path = self.cfg["pretrained_policy_path"]
+        policy_loaded_dict = torch.load(policy_path)
+        self.policy = ActorCritic( self.cfg["pretrained_num_obs"],
+                              self.cfg["pretrained_num_critic_obs"],
+                              self.cfg["pretrained_num_actions"],
+                              self.cfg["pretrained_actor_hidden_dims"],
+                              self.cfg["pretrained_critic_hidden_dims"],
+                              self.cfg["pretrained_activation"], 
+                              self.cfg["pretrained_init_noise_std"]
                               ).to(self.device)
         self.policy.load_state_dict(policy_loaded_dict['model_state_dict'])
         self.policy.eval()
@@ -123,9 +122,10 @@ class SkinnerOnPolicyRunner:
                 for i in range(self.num_steps_per_env):
                     commands = self.alg.act(obs, critic_obs)
                     actions = self.build_actions(commands, pretrained_obs)
-                    obs, privileged_obs, rewards, dones, infos, pretrained_obs = self.env.step(actions)
+                    obs, privileged_obs, rewards, dones, infos = self.env.step(actions)
                     critic_obs = privileged_obs if privileged_obs is not None else obs
                     obs, critic_obs, rewards, dones = obs.to(self.device), critic_obs.to(self.device), rewards.to(self.device), dones.to(self.device)
+                    pretrained_obs = self.env.get_pretrained_observations()
                     pretrained_obs = pretrained_obs.to(self.device)
 
                     self.alg.process_env_step(rewards, dones, infos)
@@ -163,7 +163,7 @@ class SkinnerOnPolicyRunner:
 
     def build_actions(self, commands, pretrained_obs):
         updated_obs = pretrained_obs.clone().detach()
-        updated_obs[:,9:13 ] = commands[:, :3]
+        updated_obs[:,9:12 ] = commands[:, :3]
         actions = self.policy.act_inference(updated_obs)
         return actions
 
