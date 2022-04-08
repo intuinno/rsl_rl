@@ -162,7 +162,7 @@ class SkinnerOnPolicyRunner:
         self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(self.current_learning_iteration)))
 
     def build_actions(self, commands, pretrained_obs):
-        updated_obs = pretrained_obs.clone().detach()
+        updated_obs = pretrained_obs.clone().detach().to(self.device)
         updated_obs[:,9:12 ] = commands[:, :3]
         actions = self.policy.act_inference(updated_obs)
         return actions
