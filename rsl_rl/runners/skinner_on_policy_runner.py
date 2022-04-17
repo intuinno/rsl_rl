@@ -37,7 +37,8 @@ from torch.utils.tensorboard import SummaryWriter
 import torch
 
 from rsl_rl.algorithms import PPO
-from rsl_rl.modules import ActorCritic, ActorCriticRecurrent
+from rsl_rl.modules import SkinnerActorCritic
+from rsl_rl.modules import ActorCritic
 from rsl_rl.env import VecEnv
 
 
@@ -59,9 +60,7 @@ class SkinnerOnPolicyRunner:
         else:
             num_critic_obs = self.policy_cfg["num_obs"]
         actor_critic_class = eval(self.cfg["policy_class_name"]) # ActorCritic
-        actor_critic: ActorCritic = actor_critic_class( self.policy_cfg["num_obs"],
-                                                        num_critic_obs,
-                                                        **self.policy_cfg).to(self.device)
+        actor_critic: SkinnerActorCritic = actor_critic_class( **self.policy_cfg).to(self.device)
         alg_class = eval(self.cfg["algorithm_class_name"]) # PPO
         self.alg: PPO = alg_class(actor_critic, device=self.device, **self.alg_cfg)
         self.num_steps_per_env = self.cfg["num_steps_per_env"]
