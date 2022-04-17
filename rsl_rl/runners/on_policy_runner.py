@@ -99,6 +99,14 @@ class OnPolicyRunner:
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
         tot_iter = self.current_learning_iteration + num_learning_iterations
+        
+        prof = torch.profiler.profile(schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
+                                    on_trace_ready=torch.profiler.tensorboard_trace_handler('/home/intuinno/codegit/legged_gym/logs/original_profile'),
+                                    record_shapes=True,
+                                    profile_memory=True,
+                                    with_stack=True)
+        prof.start()
+
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
             # Rollout
@@ -137,7 +145,9 @@ class OnPolicyRunner:
             if it % self.save_interval == 0:
                 self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
             ep_infos.clear()
+            prof.step()
         
+        prof.stop()
         self.current_learning_iteration += num_learning_iterations
         self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(self.current_learning_iteration)))
 
