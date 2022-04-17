@@ -46,6 +46,7 @@ class SkinnerActorCritic(nn.Module):
                         critic_hidden_dims=[256, 256, 256],
                         activation='elu',
                         init_noise_std=1.0,
+                        num_envs=512,
                         **kwargs):
         if kwargs:
             print("ActorCritic.__init__ got unexpected arguments, which will be ignored: " + str([key for key in kwargs.keys()]))
@@ -113,7 +114,8 @@ class SkinnerActorCritic(nn.Module):
 
         # Action noise
         self.std = nn.Parameter(init_noise_std * torch.ones(num_actions))
-        self.distribution = None
+        mean = torch.ones(num_envs, num_actions)
+        self.distribution = Normal(mean, mean*0. + self.std)
         # disable args validation for speedup
         Normal.set_default_validate_args = False
         
@@ -148,7 +150,9 @@ class SkinnerActorCritic(nn.Module):
 
     def update_distribution(self, features):
         mean = self.actor(features)
-        self.distribution = Normal(mean, mean*0. + self.std)
+        self.distribution = Normal(mean, mean*0. + self.std, validate_args=False)
+        # self.distribution.mean = mean
+        # self.distribution.stddev = mean*0. + self.std
 
     def act(self, observations, **kwargs):
         features = self.extract_features(observations)  
