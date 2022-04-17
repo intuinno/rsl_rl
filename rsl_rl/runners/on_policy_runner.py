@@ -136,6 +136,7 @@ class OnPolicyRunner:
                 # Learning step
                 start = stop
                 self.alg.compute_returns(critic_obs)
+                prof.step()
             
             mean_value_loss, mean_surrogate_loss = self.alg.update()
             stop = time.time()
@@ -145,7 +146,7 @@ class OnPolicyRunner:
             if it % self.save_interval == 0:
                 self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
             ep_infos.clear()
-            prof.step()
+            
         
         prof.stop()
         self.current_learning_iteration += num_learning_iterations

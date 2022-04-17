@@ -28,6 +28,9 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
+
+DEBUG_ENABLE_PROFILE = False
+
 import time
 import os
 from collections import deque
@@ -116,16 +119,18 @@ class SkinnerOnPolicyRunner:
 
         tot_iter = self.current_learning_iteration + num_learning_iterations
         
-        prof = torch.profiler.profile(schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
-                                    on_trace_ready=torch.profiler.tensorboard_trace_handler('/home/intuinno/codegit/legged_gym/logs/camera_profile02'),
-                                    record_shapes=True,
-                                    profile_memory=True,
-                                    with_stack=True)
-        prof.start()
+        if DEBUG_ENABLE_PROFILE:
+            prof = torch.profiler.profile(schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
+                                        on_trace_ready=torch.profiler.tensorboard_trace_handler('/home/intuinno/codegit/legged_gym/logs/camera_profile03'),
+                                        record_shapes=True,
+                                        profile_memory=True,
+                                        with_stack=True)
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
             # Rollout
             with torch.inference_mode():
+                # if DEBUG_ENABLE_PROFILE:
+                #     prof.start()
                 for i in range(self.num_steps_per_env):
                     commands = self.alg.act(obs, critic_obs)
                     actions = self.build_actions(commands, pretrained_obs)
@@ -136,6 +141,8 @@ class SkinnerOnPolicyRunner:
                     pretrained_obs = pretrained_obs.to(self.device)
 
                     self.alg.process_env_step(rewards, dones, infos)
+                    # if DEBUG_ENABLE_PROFILE:
+                    #     prof.step()
                     
                     if self.log_dir is not None:
                         # Book keeping
@@ -155,6 +162,8 @@ class SkinnerOnPolicyRunner:
                 # Learning step
                 start = stop
                 self.alg.compute_returns(critic_obs)
+                # if DEBUG_ENABLE_PROFILE:
+                #     prof.stop()
             
             mean_value_loss, mean_surrogate_loss = self.alg.update()
             stop = time.time()
@@ -164,9 +173,7 @@ class SkinnerOnPolicyRunner:
             if it % self.save_interval == 0:
                 self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
             ep_infos.clear()
-            prof.step()
         
-        prof.stop()
         self.current_learning_iteration += num_learning_iterations
         self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(self.current_learning_iteration)))
         
