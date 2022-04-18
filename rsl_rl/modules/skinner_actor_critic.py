@@ -97,7 +97,7 @@ class SkinnerActorCritic(nn.Module):
                                 , kernel_size=3, stride=1)
         num_flatten = convw * convh * 64
         self.cnn = nn.Sequential(
-            nn.Conv2d(4,  32, kernel_size=8, stride=4, padding=0),
+            nn.Conv2d(3,  32, kernel_size=8, stride=4, padding=0),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
             nn.ReLU(),
@@ -174,7 +174,7 @@ class SkinnerActorCritic(nn.Module):
 
     def extract_features(self, observations):
         num_envs = observations.shape[0]
-        image = observations[:,self.other_observations:].view(num_envs,  self.camera_height, self.camera_width, 4 ).permute(0, 3, 1, 2)
+        image = observations[:,self.other_observations:].view(num_envs, 3, self.camera_height, self.camera_width )
         visual_features = self.cnn(image)
         features = torch.cat((observations[:,:self.other_observations],
                              visual_features), dim=-1)
