@@ -80,6 +80,7 @@ class SkinnerActorCritic(nn.Module):
         for l in range(len(critic_hidden_dims)):
             if l == len(critic_hidden_dims) - 1:
                 critic_layers.append(nn.Linear(critic_hidden_dims[l], 1))
+                actor_layers.append(nn.Tanh())
             else:
                 critic_layers.append(nn.Linear(critic_hidden_dims[l], critic_hidden_dims[l + 1]))
                 critic_layers.append(activation)
