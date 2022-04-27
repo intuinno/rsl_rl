@@ -133,12 +133,14 @@ class SkinnerOnPolicyRunner:
                 #     prof.start()
                 for i in range(self.num_steps_per_env):
                     commands = self.alg.act(obs, critic_obs)
-                    actions = self.build_actions(commands, pretrained_obs)
-                    obs, privileged_obs, rewards, dones, infos = self.env.step(actions)
-                    critic_obs = privileged_obs if privileged_obs is not None else obs
-                    obs, critic_obs, rewards, dones = obs.to(self.device), critic_obs.to(self.device), rewards.to(self.device), dones.to(self.device)
-                    pretrained_obs = self.env.get_pretrained_observations()
-                    pretrained_obs = pretrained_obs.to(self.device)
+
+                    for _ in range(self.cfg['walking_decimation']):
+                        actions = self.build_actions(commands, pretrained_obs)
+                        obs, privileged_obs, rewards, dones, infos = self.env.step(actions)
+                        critic_obs = privileged_obs if privileged_obs is not None else obs
+                        obs, critic_obs, rewards, dones = obs.to(self.device), critic_obs.to(self.device), rewards.to(self.device), dones.to(self.device)
+                        pretrained_obs = self.env.get_pretrained_observations()
+                        pretrained_obs = pretrained_obs.to(self.device)
 
                     self.alg.process_env_step(rewards, dones, infos)
                     # if DEBUG_ENABLE_PROFILE:
@@ -182,6 +184,7 @@ class SkinnerOnPolicyRunner:
     def build_actions(self, commands, pretrained_obs):
         updated_obs = pretrained_obs.clone().detach().to(self.device)
         updated_obs[:,9:12 ] = commands[:, :3]
+        # updated_obs[:,9:12 ] = torch.tensor([0.5,0.,0.3], device=self.device, requires_grad=False)
         actions = self.policy.act_inference(updated_obs)
         return actions
 
