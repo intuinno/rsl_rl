@@ -99,8 +99,6 @@ class OnPolicyRunner:
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
         tot_iter = self.current_learning_iteration + num_learning_iterations
-        
-      
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
             # Rollout
@@ -140,8 +138,6 @@ class OnPolicyRunner:
                 self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
             ep_infos.clear()
             
-        
-        prof.stop()
         self.current_learning_iteration += num_learning_iterations
         self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(self.current_learning_iteration)))
 
