@@ -100,13 +100,7 @@ class OnPolicyRunner:
 
         tot_iter = self.current_learning_iteration + num_learning_iterations
         
-        prof = torch.profiler.profile(schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
-                                    on_trace_ready=torch.profiler.tensorboard_trace_handler('/home/intuinno/codegit/legged_gym/logs/original_profile'),
-                                    record_shapes=True,
-                                    profile_memory=True,
-                                    with_stack=True)
-        prof.start()
-
+      
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
             # Rollout
@@ -136,7 +130,6 @@ class OnPolicyRunner:
                 # Learning step
                 start = stop
                 self.alg.compute_returns(critic_obs)
-                prof.step()
             
             mean_value_loss, mean_surrogate_loss = self.alg.update()
             stop = time.time()
